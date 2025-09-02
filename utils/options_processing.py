@@ -168,7 +168,7 @@ def merge_option_forward_dfs(options_df: pd.DataFrame, forwards_df: pd.DataFrame
         how="left",
     )
 
-    merged = merged.drop(columns=["expiration", "AMSettlement", "forward_price"]).rename(
+    merged = merged.drop(columns=["expiration", "AMSettlement", "forward_price"],errors="ignore").rename(
         columns={"ForwardPrice": "forward_price"}
     )
 
