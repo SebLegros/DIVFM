@@ -15,10 +15,7 @@ from torch.distributions import Normal
 
 
 def compute_iv_statistics(df, moneyness_column: str = 'ttm_scaled_moneyness', ttm_column: str = 'ttm'):
-    """
-    Compute descriptive statistics of implied volatility (IV) grouped by moneyness and time to maturity,
-    including the average number of contracts per day and a total row.
-    """
+
     # Convert date column to datetime if not already
     df["date"] = pd.to_datetime(df["date"])
 
@@ -72,13 +69,6 @@ def plot_obs_per_date(train_data: pd.DataFrame,
                       linewidth=0.5):
     """
     Plot the number of observed contracts per day for train, validation, and test sets.
-
-    Args:
-        train_data (pd.DataFrame): DataFrame containing the training data with a 'date' column.
-        valid_data (pd.DataFrame): DataFrame containing the validation data with a 'date' column.
-        test_data (pd.DataFrame): DataFrame containing the test data with a 'date' column.
-        figsize (tuple): Size of the figure (width, height).
-        linewidth (float): Line width for the plots.
     """
     fig, ax = plt.subplots(figsize=figsize)
 
@@ -180,38 +170,7 @@ def attach_iv_and_prices(
         price_pred_col: str = "feedforward_price_pred",
         price_obs_col: str = "OM_price_pred",
 ) -> List[pd.DataFrame]:
-    """
-    For each (dataset, iv_pred) pair, add:
-      - <iv_pred_col>: predicted implied vol (1D)
-      - <price_pred_col>: price from forward model using predicted IV
-      - <price_obs_col>: price from forward model using observed IV (column 'OM_IV')
 
-    Parameters
-    ----------
-    datasets : Sequence[pd.DataFrame]
-        Each must contain columns:
-        ['strike_price', 'rate', 'forward_price', 'ttm', 'OM_IV', 'is_call'].
-    iv_preds : Sequence[torch.Tensor]
-        Predicted IV tensors aligned row-wise with each dataset. Any of
-        [N], [N,1], or [1,N] shapes are accepted.
-    get_option_price_from_forward : callable
-        Function with signature like:
-        f(None, strike, rate, forward, ttm, iv, is_call_int) -> torch.Tensor
-        (first arg kept for compatibility with your existing function).
-    inplace : bool
-        If False, DataFrames are copied before modification.
-    device : torch.device, optional
-        Device to use for torch ops. Defaults to CUDA if available.
-    dtype : torch.dtype
-        Tensor dtype for computations.
-    iv_pred_col, price_pred_col, price_obs_col : str
-        Output column names.
-
-    Returns
-    -------
-    List[pd.DataFrame]
-        The modified DataFrames (original ones if inplace=True).
-    """
     if len(datasets) != len(iv_preds):
         raise ValueError("datasets and iv_preds must have the same length.")
 
@@ -283,33 +242,6 @@ def make_daily_information_dataframe(
     """
     Build a single betas DataFrame with train/valid/test flags, optional outlier mask,
     earnings flags, column renaming, and merged daily metrics.
-
-    Required
-    --------
-    feedforward_*_betas_from_ols : torch.Tensor of shape [T, F]
-        Beta tensors for each split.
-
-    Optional keyword-only
-    ---------------------
-    train_dates, valid_dates, test_dates : np.ndarray of datetimes (len must match rows)
-        If provided, will be used as the index per split; otherwise RangeIndex is used.
-    get_mask_to_remove_outliers_fn : callable(values: np.ndarray, threshold: float) -> np.ndarray[bool]
-        If provided (and mask_threshold is set), computes a 'keep' boolean column.
-        Expects `values` shaped [T, F] or [T, 1]; threshold is applied factor-wise by your function.
-    mask_threshold : float
-        Threshold passed to `get_mask_to_remove_outliers_fn`.
-    earning_dates : pd.Index or array-like
-        Dates to mark as earnings in 'is_earnings' (True at those indices).
-    rename_cols : mapping {int: str}
-        Rename numeric beta columns to friendly names (e.g., 0->'beta_1', 1->'beta_2', ...).
-        If None, will auto-rename all numeric columns to 'beta_i' (1-based).
-    daily_*_metrics : pd.DataFrame (indexed by date)
-        If provided, concatenated and left-merged into the output on the index.
-
-    Returns
-    -------
-    pd.DataFrame
-        Combined dataframe with flags and optional extras.
     """
 
     def _to_df(betas: torch.Tensor, dates: Optional[np.ndarray], split: str) -> pd.DataFrame:
@@ -412,9 +344,7 @@ def compute_split_daily_rmse_arpe(
         mid_price_col: str = "midPrice",
         eps: float = 1e-12,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Convenience wrapper to compute daily metrics for train/valid/test.
-    """
+
     daily_train = compute_daily_rmse_arpe(
         train_data, date_col=date_col, label_col=label_col,
         pred_iv_col=pred_iv_col, pred_price_col=pred_price_col,
@@ -610,32 +540,7 @@ def plot_model_factors(
     - Factors (except factor 2) are shown over (TTM, M), where moneyness = exp(M * sqrt(TTM)).
     - Factor 2 is shown over (TTM, TTE).
 
-    Parameters
-    ----------
-    feedforward : nn.Module
-        Trained model mapping inputs of size 2 or 3 to K outputs (K inferred dynamically).
-    shared_input_shape : int
-        2 for [TTM, moneyness]; 3 for [TTM, moneyness, extra].
-    ttm_input_shape : int
-        If 2, your TTM head expects an extra feature; we feed a constant to match.
-    N_TTM, N_MONEYNESS, N_TTE : int
-        Resolution along TTM, M, and TTE axes.
-    ttm_min, ttm_max, M_min, M_max, tte_min, tte_max : float
-        Axis ranges for the grids.
-    view_angles_list : list[list[(elev, azim)]], optional
-        Each inner list supplies camera angles for all K factors; one figure per inner list.
-        If None, a single figure is created with default angles (20, 40) for each factor.
-    cmap : str
-        Matplotlib colormap name for the surfaces.
-    figsize : (int, int)
-        Figure size for each output figure.
-    ncols : int
-        Number of subplot columns; rows are computed to fit all factors.
 
-    Returns
-    -------
-    List[matplotlib.figure.Figure]
-        One figure per element in view_angles_list (or a single figure if None).
     """
     # ---- device ----
     try:
@@ -762,30 +667,6 @@ def plot_rnd_moneyness_surfaces(
     """
     Plot risk–neutral density (RND) surfaces vs. scaled moneyness for selected dates.
 
-    Parameters
-    ----------
-    daily_information_df : pd.DataFrame
-        Index = dates (datetime-like). Must contain beta columns, e.g. ['beta_1','beta_2',...].
-    train_ds : object
-        Must have attribute `.data` (a DataFrame) with columns:
-        ['date','ttm','rate','forward_price','time_to_earnings'].
-    dates : Iterable
-        Dates to plot (must exist in both daily_information_df.index and train_ds.data['date']).
-    model : torch.nn.Module
-        Network mapping [TTM, K_F, TTE] → factors. Its output dimension must match the number of betas.
-    steps : int, default=2
-        Take every `steps`-th maturity to reduce clutter.
-    n_moneyness : int, default=5000
-        Number of scaled-moneyness grid points per maturity.
-    figsize : tuple, default=(16,4)
-        Figure size.
-    elev, azim : float
-        3D view angles.
-
-    Returns
-    -------
-    matplotlib.figure.Figure
-        The created matplotlib Figure.
     """
     # --- ensure datetime types ---
     df_betas = daily_information_df.copy()
@@ -927,27 +808,6 @@ def compute_rn_density_nogrid(
     """
     Compute the risk-neutral density for each (ttm, K) observation without building a grid.
 
-    Parameters
-    ----------
-    ttm : Tensor, shape (N,)
-        time to maturity for each option (in years).
-    K : Tensor, shape (N,)
-        strike price for each option.
-    forward : Tensor, shape (N,)
-        forward price for each option.
-    rate : Tensor, shape (N,)
-        continuously compounded risk-free rate for each option.
-    tte : float
-        time‐to‐expiration feature for the feedforward network.
-    feedforward : nn.Module
-        pretrained network mapping (ttm, K/F, tte) -> features for beta projection.
-    betas_date : Tensor, shape (feature_dim,)
-        regression coefficients to compute implied vol from network output.
-
-    Returns
-    -------
-    density : Tensor, shape (N,)
-        the risk-neutral density ∂²C/∂K² · e^{r·ttm} / F² for each option.
     """
     # ensure K/F is differentiable
     K_F = (K / forward).detach().clone().requires_grad_(True)  # shape (N,)
@@ -983,15 +843,6 @@ def truncate_density_and_K(K, density, forward, tol=0.15):
     keeping only the parts of the distribution that increase before a lower bound
     and decrease after an upper bound.
 
-    Parameters:
-        K (np.ndarray): Strike prices (1D array).
-        density (np.ndarray): Risk-neutral density values (same shape as K).
-        forward (float): Forward price of the underlying.
-        tol (float): Proportional bound around the forward price (default: 0.15 for 15%).
-
-    Returns:
-        K_trunc (np.ndarray): Truncated strike prices.
-        density_trunc (np.ndarray): Truncated density values.
     """
 
     def is_decreasing(x):
@@ -1047,10 +898,6 @@ def interpolate_forward(df: pd.DataFrame,
         so you can use "nearest", "cubic", etc. If kind=="linear",
         uses numpy.interp for speed.
 
-    Returns
-    -------
-    float
-        Interpolated forward price at time tau.
     """
     # Ensure sorted by maturity
     df_sorted = df.sort_values("days_to_maturity")
@@ -1082,45 +929,6 @@ def compute_vix_from_rnd(
 ) -> pd.DataFrame:
     """
     Compute a VIX-like index from a model-implied risk-neutral density and store it in `betas_df`.
-
-    For each date and each `tau` (in days):
-      1) Interpolate forward, rate, and time_to_earnings at `tau` from `options_data`.
-      2) Build a strike grid K in [strike_span[0]*F, strike_span[1]*F].
-      3) Use the model + date betas to compute implied vol σ(ttm, K/F) and, via autograd,
-         the risk-neutral density f_RN(K, T) ∝ ∂²C/∂K² (with forward-measure discounting).
-      4) Normalize the density, compute E[K] (for your log term), then compute:
-            VIX = 100 * sqrt( -2/T * (S0/F) * ∫ log(K / E[K]) f(K) dK )
-         (Your formula as in the original code.)
-      5) Write into `betas_df.loc[date, f'VIX{tau}']`.
-
-    Parameters
-    ----------
-    options_data : pd.DataFrame
-        Must contain columns: ['date', days_col, forward_col, rate_col, tte_col] and any other you need.
-        Typically many rows per date at various strikes; we only need term-structure info to interpolate.
-    betas_df : pd.DataFrame
-        Index = dates. Must contain `beta_*` columns for each date.
-    model : torch.nn.Module
-        Maps feature vectors [ttm, K/F, tte] -> factors (dimension must match #betas for the date).
-    taus : sequence of int, default (30,)
-        Target maturities (days) at which to compute VIX.
-    forward_col, rate_col, tte_col, days_col : str
-        Column names for forward price, risk-free rate, time-to-earnings, and days-to-maturity.
-    beta_cols : sequence of str, optional
-        Names of beta columns. If None, autodetect columns that start with 'beta_'.
-    strike_span : (float, float), default (0.5, 1.5)
-        Range of strikes as multiples of forward for integration bounds.
-    num_strikes : int, default 200
-        Number of grid points in strike domain for numerical integration.
-    interpolation_kind : str, default "linear"
-        Interpolation kind passed to `interpolate_forward`.
-    show_progress : bool, default True
-        If True, show a tqdm progress bar per maturity.
-
-    Returns
-    -------
-    pd.DataFrame
-        The updated `betas_df` with added VIX columns (e.g., 'VIX30').
     """
     # --- Safety & setup ---
     if "date" not in options_data.columns:
@@ -1240,29 +1048,7 @@ def plot_computed_vix_timeseries(
     """
     Plot computed VIX vs. market VIX time series, highlighting earnings dates.
 
-    Parameters
-    ----------
-    daily_information_df : pd.DataFrame
-        Must have index = dates and contain:
-        - 'is_earnings'
-        - f'VIX{tau}' (computed VIX column)
-        - 'IndexVIX' (market index VIX)
-        - optionally '{stock}_VIX' (single-stock VIX for Apple).
-    stock : str
-        Stock ticker (e.g. 'AAPL'). If 'AAPL', also plot 'AAPL_VIX' if present.
-    tau : int, default 30
-        Horizon in days of the computed VIX column (e.g. 'VIX30').
-    start_date : str, default '2000-01-01'
-        Filter out rows before this date.
-    figsize : tuple, default (10,3)
-        Figure size.
-    log_scale : bool, default False
-        If True, use log scale on y-axis.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
-        The created figure.
     """
     col_vix_model = f"VIX{tau}"
     cols = ["is_earnings", col_vix_model]

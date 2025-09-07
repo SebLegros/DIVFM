@@ -248,11 +248,6 @@ def add_mid_price(dfOptions):
     """
     Adds a column for the mid price of options based on best bid and best offer.
 
-    Parameters:
-        dfOptions (pd.DataFrame): Dataframe containing options data.
-
-    Returns:
-        pd.DataFrame: Dataframe with added 'midPrice' column.
     """
     dfOptions['midPrice'] = (dfOptions['best_bid'] + dfOptions['best_offer']) / 2
     return dfOptions
@@ -295,18 +290,7 @@ def add_scaled_moneyness_and_filter_ttm(
     Add a column 'ttm_scaled_moneyness' to the options dataset and optionally filter
     out rows with time-to-maturity (TTM) below a threshold.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Options data containing 'moneyness' and 'ttm' columns.
-    min_ttm_days : int, optional
-        Minimum time-to-maturity in days. If provided, rows with TTM below this threshold
-        will be removed.
 
-    Returns
-    -------
-    pd.DataFrame
-        Updated DataFrame with the new 'ttm_scaled_moneyness' column and optional filtering applied.
     """
     if 'moneyness' not in df.columns or 'ttm' not in df.columns:
         raise ValueError("DataFrame must contain 'moneyness' and 'ttm' columns.")
@@ -332,9 +316,7 @@ def attach_zero_curve(df: pd.DataFrame, base_dir: str | Path) -> pd.DataFrame:
     return merged
 
 
-# -----------------------------------------------------------------------------
-# 3. Orchestration pipeline
-# -----------------------------------------------------------------------------
+
 
 def process_options_pipeline(base_dir: str | Path = "../data", **kwargs) -> pd.DataFrame:
     logger.info("Starting options processing pipeline …")
@@ -358,24 +340,6 @@ def process_options_pipeline(base_dir: str | Path = "../data", **kwargs) -> pd.D
     return final_df
 
 
-# -----------------------------------------------------------------------------
-# 4. CLI entry-point
-# -----------------------------------------------------------------------------
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Process raw option and forward data.")
-    parser.add_argument(
-        "--base-dir",
-        default="../data",
-        help="Root directory containing the rawData folder.",
-    )
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Verbosity of output logs.",
-    )
-    return parser.parse_args()
 
 
 def keep_OTM(df: pd.DataFrame, forward_prices) -> pd.DataFrame:
