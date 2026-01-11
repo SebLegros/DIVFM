@@ -1,17 +1,14 @@
 import logging
 from pathlib import Path
 
-from config import Config
 from utils.options_processing import setup_logging, process_options_pipeline
 
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    config = Config
+    setup_logging("INFO")
 
-    setup_logging(config.log_level)
-
-    base_dir = config.data_dir
+    base_dir = Path("../data")
     logger.debug("Base directory resolved to %s", base_dir.resolve())
 
     df_final = process_options_pipeline(base_dir)

@@ -2,10 +2,7 @@ from typing import List, Union, Optional
 
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
-
-from config import Config
-from utils.options_processing import split_dataset
+from torch.utils.data import Dataset
 
 
 class DailyDataset(Dataset):
@@ -50,83 +47,35 @@ class DailyDataset(Dataset):
             return features, labels
 
 
-def batch_daily_observations_with_group_and_number_of_obs_per_group(batch):
+def batch_daily_observations_with_group_and_number_of_obs_per_group(batch, successive_groups: Optional[int] = None):
     groups = []
     num_obs_per_group = []
     full_features = []
     full_labels = []
-    for features, labels, group in batch:
-        groups.append(group)
-        num_obs_per_group.append(features.shape[0])
-        full_features.append(features)
-        full_labels.append(labels)
+    if successive_groups is None:
+        for features, labels, group in batch:
+            groups.append(group)
+            num_obs_per_group.append(features.shape[0])
+            full_features.append(features)
+            full_labels.append(labels)
 
-    return torch.cat(full_features, dim=0), torch.cat(full_labels, dim=0), torch.tensor(num_obs_per_group), groups
+        return torch.cat(full_features, dim=0), torch.cat(full_labels, dim=0), torch.tensor(num_obs_per_group), groups
+    else:
+        features_per_successive = {key: [] for key in range(successive_groups)}
+        labels_per_successive = {key: [] for key in range(successive_groups)}
+        group_name_per_successive = {key: [] for key in range(successive_groups)}
+        num_obs_per_group_per_successive = {key: [] for key in range(successive_groups)}
+        for grouped_features, grouped_labels, grouped_group in batch:
+            for key in range(successive_groups):
+                group_name_per_successive[key].append(grouped_group[key])
+                num_obs_per_group_per_successive[key].append(grouped_features[key].shape[0])
+                features_per_successive[key].append(grouped_features[key])
+                labels_per_successive[key].append(grouped_labels[key])
 
+        features_per_successive = [torch.cat(features, dim=0) for features in features_per_successive.values()]
+        labels_per_successive = [torch.cat(labels, dim=0) for labels in labels_per_successive.values()]
+        num_obs_per_group_per_successive = [torch.tensor(num_obs_per_group) for num_obs_per_group in num_obs_per_group_per_successive.values()]
+        group_name_per_successive = [group_name for group_name in group_name_per_successive.values()]
 
-def make_datasets(
-        df: pd.DataFrame, cfg: Config
-) -> tuple[DailyDataset, DailyDataset, DailyDataset]:
-    train_df, valid_df, test_df = split_dataset(
-        df, cfg.begin_train_date, cfg.begin_valid_date, cfg.begin_test_date
-    )
-    train_ds = DailyDataset(
-        train_df,
-        features_name=list(cfg.features),
-        labels_name=list(cfg.labels),
-        group_by="date",
-        dtype=cfg.dtype,
-        return_group=True,
-        successive_groups=None,
-    )
-    valid_ds = DailyDataset(
-        valid_df,
-        features_name=list(cfg.features),
-        labels_name=list(cfg.labels),
-        group_by="date",
-        dtype=cfg.dtype,
-        return_group=True,
-    )
-    test_ds = DailyDataset(
-        test_df,
-        features_name=list(cfg.features),
-        labels_name=list(cfg.labels),
-        group_by="date",
-        dtype=cfg.dtype,
-        return_group=True,
-    )
-    return train_ds, valid_ds, test_ds
+        return features_per_successive, labels_per_successive, num_obs_per_group_per_successive, group_name_per_successive
 
-def make_loaders(
-    train_ds: DailyDataset, valid_ds: DailyDataset, test_ds: DailyDataset, cfg: Config, device: torch.device
-) -> tuple[DataLoader, DataLoader, DataLoader]:
-    # pin_memory if using CUDA for faster host->device transfers
-    pin = device.type == "cuda"
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        pin_memory=pin,
-        persistent_workers=cfg.num_workers > 0,
-        collate_fn=batch_daily_observations_with_group_and_number_of_obs_per_group,
-    )
-    valid_loader = DataLoader(
-        valid_ds,
-        batch_size=cfg.batch_size,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        pin_memory=pin,
-        persistent_workers=cfg.num_workers > 0,
-        collate_fn=batch_daily_observations_with_group_and_number_of_obs_per_group,
-    )
-    test_loader = DataLoader(
-        test_ds,
-        batch_size=cfg.batch_size,
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        pin_memory=pin,
-        persistent_workers=cfg.num_workers > 0,
-        collate_fn=batch_daily_observations_with_group_and_number_of_obs_per_group,
-    )
-    return train_loader, valid_loader, test_loader

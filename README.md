@@ -22,19 +22,24 @@ https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5283770
 Repository Structure
 ----------------------------------------------------------------------
 ```
-  Repository Structure
-├─ config.py                # Global configuration parameters
-├─ 1_process_data.py        # Preprocess raw option data
-├─ 2_train_model.py         # Train neural networks (requires MLflow)
-├─ 3_evaluate_model.py      # Evaluate trained models and generate plots
-├─ utils/                   # Utility modules
-│  ├─ logging.py            # Custom logging and experiment helpers
-│  ├─ modelInferenceFunctions.py  # Functions for inference and prediction
-│  ├─ models.py             # Model architectures (Feedforward, SplitDeepFactorNN, etc.)
-│  ├─ options_processing.py # Option data cleaning and feature engineering
-│  ├─ optionsDataset.py     # Dataset classes and DataLoader utilities
-├─ data/                    # Placeholder for synthetic dataset
-└─ README.txt               # This file
+├─ config.py                    # Global configuration parameters
+├─ 1_process_data.py            # Preprocess raw option data
+├─ 2-notebooks/                 # Training and evaluation notebooks
+│  ├─ train_model.ipynb         # Train models (MLflow mandatory)
+│  ├─ evaluate_model.ipynb      # Main evaluation notebook
+│  ├─ DIVFM_Benchmark_model_comparison.ipynb
+│  ├─ TTEA_model_comparison.ipynb
+├─ utils/                       # Utility modules
+│  ├─ staticModels.py           # Model architectures
+│  ├─ options_processing.py     # Option data cleaning & feature engineering
+│  ├─ optionsDataset.py         # Dataset classes & DataLoader utilities
+│  ├─ performance_tables.py     # Generates performance tables
+│  ├─ dataImportation.py        # Imports data
+│  ├─ evaluation.py             # Every functions to evaluate the model and get figures
+
+
+├─ data/                        # Placeholder for synthetic dataset
+└─ README.txt                   # This file
 ```
 ----------------------------------------------------------------------
 Requirements
